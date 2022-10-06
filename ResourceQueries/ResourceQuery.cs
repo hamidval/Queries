@@ -6,12 +6,12 @@ using Domain.Enums;
 using Dapper;
 using System.Data.SqlClient;
 using Domain.Dtos;
-using Queries.SearchQueries.Contracts;
+using Queries.ResourceQueries.Contracts;
 using Domaim.Dtos;
 using System.Configuration;
 using Core;
 
-namespace Queries.SearchQueries
+namespace Queries.ResourceQueries
 {
 
     public class ResourceQuery : IResourceQuery
@@ -24,49 +24,60 @@ namespace Queries.SearchQueries
 
         }
 
-        public List<ResourceDto> GetResourceByUserId(string userId) {
+        public List<ResourceDto> GetResources(string userId, ResourceStatus? status = null) {
 
-            var sql = @"SELECT * FROM dbo.Resources r WHERE r.CreatedBy = @userId and r.ResourceStatus != 1";
+            var sql = @"SELECT * FROM dbo.Resources r WHERE r.CreatedBy = @userId";
+
+            if (status != null) 
+            {               
+                sql += @" and r.ResourceStatus = @status";
+            }
+
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
-                var result = connection.Query<ResourceDto>(sql, new { UserId = userId }).ToList();
+                var result = connection.Query<ResourceDto>(sql, new { UserId = userId, Status = status }).ToList();
+                return result;
+            }
+        }
+        public List<ResourceDto> GetResources(int id, ResourceStatus? status = null)
+        {
+
+            var sql = @"SELECT * FROM dbo.Resources r WHERE r.Id = @id";
+
+            if (status != null)
+            {
+                sql += @" and r.ResourceStatus = @status";
+            }
+
+            using (SqlConnection connection = new SqlConnection(ConnectionString))
+            {
+                var result = connection.Query<ResourceDto>(sql, new { Id = id, Status = status }).ToList();
                 return result;
             }
         }
 
         public List<ResourceDto> GetResources(Level level, Subject subject) {
 
-            var sql = @"SELECT * FROM dbo.Resources r WHERE r.Level = @level and r.subject = @subject and r.ResourceStatus != 1";
+            var sql = @"SELECT * FROM dbo.Resources r WHERE r.Level = @level and r.subject = @subject";
 
             if (level == Level.None && subject == Subject.None)
             {
-                sql = @"SELECT * FROM dbo.Resources r WHERE r.ResourceStatus != 1";
+                sql = @"SELECT * FROM dbo.Resources r";
             }
             else if (level == Level.None)
             {
-                sql = @"SELECT * FROM dbo.Resources r WHERE r.subject = @subject and r.ResourceStatus != 1";
+                sql = @"SELECT * FROM dbo.Resources r WHERE r.subject = @subject";
             }
             else if (subject == Subject.None)
             {
-                sql = @"SELECT * FROM dbo.Resources r WHERE r.Level = @level and r.ResourceStatus != 1";
+                sql = @"SELECT * FROM dbo.Resources r WHERE r.Level = @level";
             }
-            
+
+            sql += " and r.ResourceStatus != 1";
 
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 var result = connection.Query<ResourceDto>(sql,new { level = level, subject = subject }).ToList();
-                return result;
-            }
-
-        }
-
-        public List<ResourceDto> GetResources(int id)
-        {
-
-            var sql = @"SELECT * FROM dbo.Resources r WHERE r.Id= @id and r.ResourceStatus != 1";
-            using (SqlConnection connection = new SqlConnection(ConnectionString))
-            {
-                var result = connection.Query<ResourceDto>(sql, new { id = id}).ToList();
                 return result;
             }
 
@@ -91,9 +102,5 @@ namespace Queries.SearchQueries
 
         }
 
-        public List<ResourceDto> GetResourcesById(string userId)
-        {
-            return GetResourceByUserId(userId);
-        }
     }
 }
